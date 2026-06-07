@@ -1,0 +1,36 @@
+name: RUTOLL Support Infrastructure CI
+
+on:
+  push:
+    branches: [ "main", "feature/*" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository code
+      uses: actions/checkout@v3
+
+    - name: Validate Docker Compose Configuration
+      run: docker compose config
+
+    - name: Deploy Test Infrastructure
+      run: |
+        docker compose up -d
+        sleep 10
+        docker compose ps
+
+    - name: Verify Database Container Health
+      run: |
+        docker compose logs rutoll-db | grep -i "database system is ready to accept connections"
+        if [ $? -eq 0 ]; then
+          echo "Тест пройден успешно"
+        else
+          echo "Ошибка инициализации СУБД" && exit 1
+        fi
+
+    - name: Shutdown Test Infrastructure
+      run: docker compose down -v

@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  # База данных транзакций СВП
+  rutoll-db:
+    image: postgres:15-alpine
+    container_name: rutoll_lane_db
+    environment:
+      POSTGRES_DB: lane_transactions
+      POSTGRES_USER: support_engineer
+      POSTGRES_PASSWORD: SafePassword2026
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - rutoll-private-net
+    restart: always
+
+  # Эмулятор дорожного контроллера (запись логов оборудования полосы)
+  lane-controller-emulator:
+    image: alpine:latest
+    container_name: lane_emulator
+    volumes:
+      - log_data:/var/log
+    networks:
+      - rutoll-private-net
+    depends_on:
+      - rutoll-db
+    command: >
+      sh -c "echo 'Starting RUTOLL lane software emulation...' && 
+             while true; do 
+               echo \"\$(date +'%Y-%m-%d %H:%M:%S') [INFO] Vehicle class detected: 2\" >> /var/log/driveway.log;
+               sleep 3;
+               echo \"\$(date +'%Y-%m-%d %H:%M:%S') [INFO] Command sent: OPEN_BARRIER\" >> /var/log/driveway.log;
+               sleep 1;
+               echo \"\$(date +'%Y-%m-%d %H:%M:%S') [INFO] Barrier event: SUCCESSFULLY_OPENED\" >> /var/log/driveway.log;
+               sleep 5;
+             done"
+
+volumes:
+  db_data:
+  log_data:
+
+networks:
+  rutoll-private-net:
+    driver: bridge
