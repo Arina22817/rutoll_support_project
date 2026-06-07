@@ -17,7 +17,7 @@ services:
 
   # Эмулятор дорожного контроллера (запись логов оборудования полосы)
   lane-controller-emulator:
-    image: alpine:latest
+    build: .
     container_name: lane_emulator
     volumes:
       - log_data:/var/log
