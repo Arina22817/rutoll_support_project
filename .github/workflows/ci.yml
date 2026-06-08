@@ -11,26 +11,29 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    # 1. Обновлено до v4 (работает быстрее, стабильнее)
     - name: Checkout repository code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
+    # 2. Проверка синтаксиса docker-compose.yml
     - name: Validate Docker Compose Configuration
       run: docker compose config
 
-    - name: Deploy Test Infrastructure
+    # 3. Запуск контейнеров с флагом ожидания healthcheck
+    # Флаг --wait заставит команду ждать, пока все контейнеры станут healthy
+    - name: Deploy and Verify Infrastructure
       run: |
-        docker compose up -d
-        sleep 10
+        docker compose up -d --wait
         docker compose ps
 
-    - name: Verify Database Container Health
+    # 4. Дополнительный шаг контроля (опционально, для вывода логов при успехе)
+    - name: Show Infrastructure Status
       run: |
-        docker compose logs rutoll-db | grep -i "database system is ready to accept connections"
-        if [ $? -eq 0 ]; then
-          echo "Тест пройден успешно"
-        else
-          echo "Ошибка инициализации СУБД" && exit 1
-        fi
+        echo "Инфраструктура успешно запущена и прошла проверку здоровья."
+        docker compose logs rutoll-db | tail -n 20
 
+    # 5. Очистка после тестов (флаг -v удаляет созданные volumes)
     - name: Shutdown Test Infrastructure
+      if: always() # Выполнится даже если предыдущие шаги упали
       run: docker compose down -v
+

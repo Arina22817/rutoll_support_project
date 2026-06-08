@@ -14,6 +14,13 @@ services:
     networks:
       - rutoll-private-net
     restart: always
+    #  ДОБАВЛЕННЫЙ БЛОК HEALTHCHECK
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U support_engineer -d lane_transactions"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+      start_period: 2s
 
   # Эмулятор дорожного контроллера (запись логов оборудования полосы)
   lane-controller-emulator:
@@ -24,17 +31,19 @@ services:
     networks:
       - rutoll-private-net
     depends_on:
-      - rutoll-db
+      # ИЗМЕНЕНО: теперь ждем не просто старта, а готовности БД
+      rutoll-db:
+        condition: service_healthy
     command: >
-      sh -c "echo 'Starting RUTOLL lane software emulation...' && 
-             while true; do 
-               echo \"\$(date +'%Y-%m-%d %H:%M:%S') [INFO] Vehicle class detected: 2\" >> /var/log/driveway.log;
-               sleep 3;
-               echo \"\$(date +'%Y-%m-%d %H:%M:%S') [INFO] Command sent: OPEN_BARRIER\" >> /var/log/driveway.log;
-               sleep 1;
-               echo \"\$(date +'%Y-%m-%d %H:%M:%S') [INFO] Barrier event: SUCCESSFULLY_OPENED\" >> /var/log/driveway.log;
-               sleep 5;
-             done"
+      sh -c "echo 'Starting RUTOLL lane software emulation...' &&
+      while true; do
+        echo \"\$(date +'%Y-%m-%d %H:%M:%S') [INFO] Vehicle class detected: 2\" >> /var/log/driveway.log;
+        sleep 3;
+        echo \"\$(date +'%Y-%m-%d %H:%M:%S') [INFO] Command sent: OPEN BARRIER\" >> /var/log/driveway.log;
+        sleep 1;
+        echo \"\$(date +'%Y-%m-%d %H:%M:%S') [INFO] Barrier event: SUCCESSFULLY_OPENED\" >> /var/log/driveway.log;
+        sleep 5;
+      done"
 
 volumes:
   db_data:
